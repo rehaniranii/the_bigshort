@@ -1,0 +1,33 @@
+# Environments
+.venv/
+*/.venv/
+env/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Node & Frontend
+node_modules/
+*/node_modules/
+.next/
+*/.next/
+dist/
+build/
+.turbo/
+
+# OS & System
+.DS_Store
+Thumbs.db
+.system_generated/
+*.log
+
+# Sensitive / Scratch
+scratch/
+.env.local
+.env.*.local
