@@ -124,9 +124,9 @@ function points(s, items, { x, y, w, gap = 0.85, color } = {}) {
   s.addText('KESTREL_EM Sprint Playbook', { placeholder: 'title' });
   s.addText([
     { text: 'Team Renaissance · BigShort ML Trading Sprint', options: { breakLine: true } },
-    { text: `When the market crashed, holding the stock lost ${pct(-F.bh_return)}. Our Round 3 strategy made ${spct(F.r3_return)}.`, options: { fontSize: 16 } },
+    { text: `When the market crashed, holding the stock lost ${pct(-F.bh_return)}. Our causal Round 3 engine lost only ${pct(-F.r3_return)}.`, options: { fontSize: 16 } },
   ], { placeholder: 'body' });
-  s.addNotes(`SPEAKER 1 (about 15 seconds)\n\nHi, we're Team Renaissance. We were given one stock, KESTREL_EM, and three rounds. When the market crashed, simply holding the stock lost ${pct(-F.bh_return, 0)}. Our Round 3 strategy finished up ${pct(F.r3_return)}. Here's how we did it.`);
+  s.addNotes(`SPEAKER 1 (about 15 seconds)\n\nHi, we're Team Renaissance. We were given one stock, KESTREL_EM, and three rounds. When the market crashed, simply holding the stock lost ${pct(-F.bh_return, 0)}. Our causal Round 3 engine, which only uses past data, lost just ${pct(-F.r3_return)}. Here's how we built it.`);
 }
 
 /* 2 ─ The task and the data */
@@ -186,7 +186,7 @@ function points(s, items, { x, y, w, gap = 0.85, color } = {}) {
 
 /* 5 ─ Crash detection */
 {
-  const s = content('Main talk', 'Round 2: the crash changed everything', `SPEAKER 3 (about 30 seconds)\n\nThen the market crashed. Daily swings went from about ${pct(regime[0].daily_vol, 0)} to about ${pct(regime[2].daily_vol, 0)}, five times bigger. A model trained on the calm market stops working.\nSo we added a crash alarm. It goes off if any of three things happens: swings get much bigger than normal, the price drops more than 12% from its recent high, or there is one huge move in a single day. Once it goes off, we stay careful for 15 days.`, 'ROUND 2 → 3 · generate_round3_signals.py');
+  const s = content('Main talk', 'The crash changed everything', `SPEAKER 3 (about 30 seconds)\n\nThen the market crashed. Daily swings went from about ${pct(regime[0].daily_vol, 0)} to about ${pct(regime[2].daily_vol, 0)}, five times bigger. A model trained on the calm market stops working.\nSo we added a crash alarm. It goes off if any of three things happens: swings get much bigger than normal, the price drops more than 12% from its recent high, or there is one huge move in a single day. Once it goes off, we stay careful for 15 days.\nFor Round 2 itself we retrained a model on past data only and added a crash adjustment; that's in the backup slides.`, 'ROUND 2 → 3 · generate_round3_signals.py');
   s.addChart(pres.charts.BAR, [{ name: 'Daily swing', labels: ['Calm', 'Before crash', 'Crash'], values: regime.map((r) => r.daily_vol) }], {
     x: 0.5, y: 1.1, w: 4.6, h: 4.0, barDir: 'col', ...AX, catAxisLabelFontSize: 12, ...grid(), chartColors: [HEX.gray, HEX.gray, HEX.red], invertedColors: [HEX.gray], showValue: true, dataLabelPosition: 'outEnd', dataLabelFormatCode: '0.0%',
     valAxisLabelFormatCode: '0%', valAxisMaxVal: 0.08, valAxisMinVal: 0, showLegend: false, barGapWidthPct: 70, showTitle: true, title: 'Average daily price swing', objectName: 'chart-vol' });
@@ -202,7 +202,7 @@ function points(s, items, { x, y, w, gap = 0.85, color } = {}) {
 
 /* 6 ─ Sizing */
 {
-  const s = content('Main talk', 'Round 3: how much we bet each day', `SPEAKER 3 (about 30 seconds)\n\nIn Round 3 we choose a position every day, from minus one to plus one.\nWhen the market is calm, we follow the trend and buy.\nWhen the crash alarm is on, we take only a small short bet while the price is falling, or we stay out completely.\nWe also change positions slowly when adding risk but quickly when cutting it. That keeps trading costs low.\nIn the chart: the orange bars are our position. Long before the crash, small short during it.`, 'ROUND 3 · generate_round3_signals.py');
+  const s = content('Main talk', 'Round 3: our causal engine decides the bet', `SPEAKER 3 (about 30 seconds)\n\nIn Round 3 we choose a position every day, from minus one to plus one. This is our causal engine: it only ever uses past data.\nWhen the market is calm, we follow the trend and buy.\nWhen the crash alarm is on, we take only a small short bet while the price is falling, or we stay out completely.\nWe also change positions slowly when adding risk but quickly when cutting it. That keeps trading costs low.\nIn the chart: the orange bars are our position. Long before the crash, small short during it.`, 'ROUND 3 · generate_round3_signals.py');
   const pts = market.filter((d) => d.t >= 801), lab = pts.map((d) => String(d.t));
   s.addChart(pres.charts.LINE, [{ name: 'Price', labels: lab, values: pts.map((d) => d.close) }], {
     x: 0.5, y: 1.05, w: 5.8, h: 2.1, ...AX, ...grid(), chartColors: [HEX.teal], lineSize: 2, lineDataSymbol: 'none', showLegend: false, catAxisHidden: true, valAxisLabelFormatCode: '#,##0', valAxisMinVal: 150,
@@ -219,24 +219,24 @@ function points(s, items, { x, y, w, gap = 0.85, color } = {}) {
 
 /* 7 ─ Result */
 {
-  const s = content('Main talk', 'Round 3 result: we protected the money', `SPEAKER 3 (about 30 seconds)\n\nThis is what 1 unit of money became over the 50 crash days, after trading costs.\nThe grey line is just holding the stock: it lost ${pct(-F.bh_return, 0)}, and at its worst it was down ${pct(-F.bh_mdd, 0)}.\nThe green line is us: up ${pct(F.r3_return)}, and never more than ${pct(-F.r3_mdd)} down.\nWe also traded very little, which keeps costs low. This is our own calculation, not the official score.`, 'ROUND 3 · RESULT AFTER TRADING COSTS');
+  const s = content('Main talk', 'Causal engine result: we protected the money', `SPEAKER 3 (about 30 seconds)\n\nThis is what 1 unit of money became over the 50 crash days, after trading costs.\nThe grey line is just holding the stock: it lost ${pct(-F.bh_return, 0)}, and at its worst it was down ${pct(-F.bh_mdd, 0)}.\nThe green line is our causal engine: down only ${pct(-F.r3_return)}, and never more than ${pct(-F.r3_mdd)} down.\nIt doesn't make money in the crash, but it keeps almost all the capital, and it traded very little. This is our own calculation, scored against the next day's move like the target, not the official score.`, 'ROUND 3 · RESULT AFTER TRADING COSTS');
   const lab = r3.map((d) => String(d.t));
   s.addChart(pres.charts.LINE, [
-    { name: 'Our strategy', labels: lab, values: r3.map((d) => d.strategy_equity) },
+    { name: 'Our causal engine', labels: lab, values: r3.map((d) => d.strategy_equity) },
     { name: 'Just holding the stock', labels: lab, values: r3.map((d) => d.buyhold_equity) },
   ], { x: 0.5, y: 1.05, w: 5.6, h: 4.05, ...AX, ...grid(), chartColors: [HEX.teal, HEX.gray], lineSize: 2.5, lineDataSymbol: 'none', showLegend: true, legendPos: 't', legendFontSize: 11, catAxisLabelFrequency: 7,
     valAxisLabelFormatCode: '0.00', valAxisMinVal: 0.4, valAxisMaxVal: 1.2, showTitle: true, title: 'What 1 unit of money became, days 851–900', objectName: 'chart-r3-eq' });
-  const stats = [[spct(F.r3_return), 'Our return', `Holding: ${spct(F.bh_return)}`, C.accent5], [pct(F.r3_mdd), 'Worst drop', `Holding: ${pct(F.bh_mdd)}`, C.accent1]];
+  const stats = [[spct(F.r3_return), 'Causal engine return', `Holding: ${spct(F.bh_return)}`, C.accent1], [pct(F.r3_mdd), 'Worst drop', `Holding: ${pct(F.bh_mdd)}`, C.accent1]];
   stats.forEach(([b, l, sub, col], i) => { card(s, 6.4, 1.1 + i * 2.0, 3.1, 1.85); stat(s, 6.6, 1.15 + i * 2.0, 2.8, b, l, sub, col); });
 }
 
 /* 8 ─ The code */
 {
-  const s = content('Main talk', 'What we built: the code behind each round', `SPEAKER 4 (about 40 seconds)\n\nEverything is in our GitHub repo.\nRound 1 script: builds the inputs, trains three models and mixes them. A second script tests it fairly.\nRound 2 script: we found the hidden close price could be worked out from the order flow column.\nRound 3 script: the crash alarm, the position sizing, and a check that proves we never used future data.\nREGIME-X: our research app, with a dashboard, used to test ideas before using our 10 uploads.\nOne honest note: Round 2 used the next day's price, so we rebuilt Round 3 to use only past data.\nThank you, happy to take questions.`, 'OUR GITHUB REPO');
+  const s = content('Main talk', 'What we built: the code behind each round', `SPEAKER 4 (about 40 seconds)\n\nEverything is in our GitHub repo.\nRound 1 script: builds the inputs, trains three models and mixes them. A second script tests it fairly.\nRound 2 script: a model retrained on past data only, with a crash adjustment.\nRound 3: our final upload used the next day's price, which is look-ahead. Our causal engine, generate_round3_signals.py, has the crash alarm, the position sizing, and a check that proves it never uses future data.\nREGIME-X: our research app, with a dashboard, used to test ideas before using our 10 uploads.\nThank you, happy to take questions.`, 'OUR GITHUB REPO');
   const code = [
     ['Round 1', 'generate_round1_submission.py', 'Builds 34 inputs, trains 3 models, mixes them. Tested by validate_round1.py'],
-    ['Round 2', 'generate_round2_round3_submissions.py', 'Works out the hidden close price from order_flow'],
-    ['Round 3', 'generate_round3_signals.py', 'Crash alarm, position sizing, and a no-future-data check'],
+    ['Round 2', 'generate_round2_round3_submissions.py', 'Causal LR + HistGB model with a crash adjustment'],
+    ['Round 3 · causal engine', 'generate_round3_signals.py', 'Crash alarm, position sizing, and a no-future-data check'],
     ['Research app', 'regime-x/', 'Dashboard + backend we used to test ideas before uploading'],
   ];
   code.forEach(([tag, f, d], i) => {
@@ -246,7 +246,7 @@ function points(s, items, { x, y, w, gap = 0.85, color } = {}) {
     txt(s, f, { x: x + 0.2, y: y + 0.42, w: 4.0, h: 0.3, fontSize: 12, bold: true, fontFace: 'Courier New', color: C.accent1 });
     txt(s, d, { x: x + 0.2, y: y + 0.78, w: 4.0, h: 0.55, fontSize: 12.5, color: HEX.slate });
   });
-  txt(s, [B('Honest note: '), { text: 'Round 2 used the next day\'s price, so we rebuilt Round 3 to use only past data, and the code checks it.' }], { x: 0.5, y: 4.45, w: 9.0, h: 0.6, fontSize: 13.5 });
+  txt(s, [B('Honest note: '), { text: 'our final Round 3 upload (generate_round3_100.py) used the next day\'s price. The causal engine above does not, and the code checks it.' }], { x: 0.5, y: 4.45, w: 9.0, h: 0.6, fontSize: 13.5 });
 }
 
 /* ═════════════════ BACKUP (Q&A) ═════════════════ */
@@ -308,7 +308,7 @@ pres.addSection({ title: 'Backup' });
 
 /* A5 ─ R2 forensics: the hidden close */
 {
-  const s = content('Backup', 'Data forensics: the hidden close', `HOW TO EXPLAIN IT (about 30 seconds)\n\nThe order_flow column turned out to be where the close sits inside the day's high-low range: +1 means it closed at the high, -1 at the low, 0 in the middle. It's a standard indicator called the Close Location Value.\nOn the crash days the organisers hid the close but still gave high, low and order_flow. One equation, one unknown, so we can solve for the close exactly. Row 1 checks out: (2 x 238.56 - 239.57 - 232.41) / 7.16 = 0.7179, the order_flow in the file.\nWe checked it on all 850 rows where the close is known (max error ${F.rec_err.toFixed(4)}, just rounding), and its 10-day average matches the sma_10 column the organisers still gave on the crash days.\nWe needed the close to measure returns, swings and drawdown for the crash alarm.\nIn Round 3 we only use yesterday's rebuilt close to set today's position, which is fair. Round 2 used tomorrow's close to label today, which is look-ahead, and that's why we rebuilt Round 3.`, 'ROUND 2 · generate_round2_round3_submissions.py');
+  const s = content('Backup', 'Data forensics: the hidden close', `HOW TO EXPLAIN IT (about 30 seconds)\n\nThe order_flow column turned out to be where the close sits inside the day's high-low range: +1 means it closed at the high, -1 at the low, 0 in the middle. It's a standard indicator called the Close Location Value.\nOn the crash days the organisers hid the close but still gave high, low and order_flow. One equation, one unknown, so we can solve for the close exactly. Row 1 checks out: (2 x 238.56 - 239.57 - 232.41) / 7.16 = 0.7179, the order_flow in the file.\nWe checked it on all 850 rows where the close is known (max error ${F.rec_err.toFixed(4)}, just rounding), and its 10-day average matches the sma_10 column the organisers still gave on the crash days.\nWe needed the close to measure returns, swings and drawdown for the crash alarm.\nOur causal engine only uses yesterday's rebuilt close to set today's position, which is fair. Our final Round 3 upload used tomorrow's rebuilt close to set today's position, which is look-ahead.`, 'DATA FORENSICS · used by generate_round3_signals.py');
   // Formula card with a worked example
   card(s, 0.5, 1.05, 4.45, 1.45);
   txt(s, 'of = order_flow = (2c − h − l) / (h − l)', { x: 0.65, y: 1.13, w: 4.2, h: 0.32, fontSize: 12, fontFace: 'Courier New' });
@@ -329,8 +329,8 @@ pres.addSection({ title: 'Backup' });
     valAxisLabelFormatCode: '#,##0', valAxisMinVal: 150, displayBlanksAs: 'gap', showTitle: false, objectName: 'chart-rebuilt' });
   // Fair vs not fair
   const uses = [
-    ['FAIR · Round 3', "Yesterday's rebuilt close → today's position", C.accent5],
-    ['LOOK-AHEAD · Round 2', "Tomorrow's rebuilt close → today's label. Why we rebuilt Round 3", C.accent3],
+    ['FAIR · causal engine', "Yesterday's rebuilt close → today's position", C.accent5],
+    ['LOOK-AHEAD · final Round 3 upload', "Tomorrow's rebuilt close → today's position", C.accent3],
   ];
   uses.forEach(([h, d, col], i) => {
     const y = 3.75 + i * 0.68;
@@ -338,6 +338,20 @@ pres.addSection({ title: 'Backup' });
     txt(s, h, { x: 5.32, y: y + 0.06, w: 4.1, h: 0.22, fontSize: 10.5, bold: true, color: col, charSpacing: 1 });
     txt(s, d, { x: 5.32, y: y + 0.3, w: 4.1, h: 0.26, fontSize: 11 });
   });
+}
+
+/* A5b ─ What we uploaded */
+{
+  const s = content('Backup', 'What we actually uploaded', `HOW TO EXPLAIN IT\n\nRound 1 was our three-model blend, using only past data.\nRound 2 was a model retrained on past data with a crash adjustment. It scores ${pct(F.r2_up_ba, 1)} balanced accuracy against the rebuilt closes, but the two adjustment numbers may have been set while checking crash-day accuracy, so treat that as in-sample.\nRound 3: our final upload, generate_round3_100.py, set each position from the next day's rebuilt close. It matches the next day's direction on every bar, which is look-ahead. Our causal engine, generate_round3_signals.py, is what we presented: it only uses past data and passes the no-future-data check.`, 'SUBMISSIONS · FROM GIT HISTORY');
+  const rows = [[hdr('Round'), hdr('Script'), hdr('How it works'), hdr('Uses future data?')],
+    ['Round 1', 'generate_round1_submission.py', 'LR + HistGB + LightGBM blend on 34 inputs', 'No'],
+    ['Round 2', 'generate_round2_round3_submissions.py', `LR + HistGB, crash adjustment; ${pct(F.r2_up_ba, 1)} bal. acc. vs rebuilt closes`, 'No in features; adjustment may be tuned on test rows'],
+    ['Round 3 upload', 'generate_round3_100.py', `Sign of next day's rebuilt return; matches ${pct(F.r3_up_match, 0)} of bars`, 'Yes, look-ahead'],
+    ['Causal engine', 'generate_round3_signals.py', 'Crash alarm + vol-targeted trend + smoother', 'No, checked on all 50 bars'],
+  ].map((r, i) => i === 0 ? r : r.map((c, j) => ({ text: c, options: { bold: j === 0, fontFace: j === 1 ? 'Courier New' : 'Calibri', fontSize: j === 1 ? 9.5 : 11.5,
+    color: j === 3 ? (c.startsWith('Yes') ? HEX.red : c.startsWith('No,') || c === 'No' ? HEX.green : HEX.amber) : HEX.ink } })));
+  s.addTable(rows, tableOpts({ x: 0.5, y: 1.2, w: 9.0, colW: [1.3, 3.25, 2.6, 1.85], fontSize: 12, rowH: 0.62, objectName: 'table-uploads' }));
+  txt(s, 'Upload files are in git history: Round 1 b1a5941 · Round 2 0394367 · Round 3 056f38f', { x: 0.5, y: 4.65, w: 9.0, h: 0.35, fontSize: 11, color: HEX.slate });
 }
 
 /* A6 ─ R3 engine */

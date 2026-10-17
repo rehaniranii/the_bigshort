@@ -1,6 +1,6 @@
-import sys, json, numpy as np, pandas as pd
+import sys, json, subprocess, numpy as np, pandas as pd
 from pathlib import Path
-ROOT = Path('/Users/rehanirani/bigshort/the_bigshort')
+ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import generate_round3_signals as g
 OUT = Path(sys.argv[1]); OUT.mkdir(exist_ok=True)
@@ -37,11 +37,15 @@ def st(name, a, b):
                 autocorr_1=round(float(rr.autocorr(1)), 4))
 dump('regime_windows', [st('Calm (1-800)', 1, 800), st('Pre-crash (801-850)', 800, 850), st('Flash crash (851-900)', 850, 900)])
 
-r1 = pd.read_csv(ROOT / 'round_1_submission.csv')
+def git_csv(rev_path):
+    return pd.read_csv(pd.io.common.StringIO(subprocess.check_output(['git', '-C', str(ROOT), 'show', rev_path], text=True)))
+r1 = git_csv('b1a5941:round_1_submission.csv')  # Round 1 upload, removed from main later
 dump('r1_submission', [dict(timestamp=int(a), prediction=int(b), confidence=float(cc)) for a, b, cc in r1.values])
 
 cost = 0.001
-p = pos.iloc[850:900].values; rr = r.iloc[850:900].values; prev = pos.iloc[849:899].values
+# Scorer alignment: the position on row t earns the move from close[t] to close[t+1] (same as the target).
+# The last row has no next close, so it earns 0.
+p = pos.iloc[850:900].values; rr = c.pct_change().shift(-1).iloc[850:900].fillna(0.0).values; prev = pos.iloc[849:899].values
 turn = np.abs(p - prev); pnl = p * rr - turn * cost
 eq = np.cumprod(1 + pnl); bh = np.cumprod(1 + rr)
 dd = eq / np.maximum.accumulate(eq) - 1; bdd = bh / np.maximum.accumulate(bh) - 1
@@ -52,7 +56,12 @@ dump('r3_backtest', [dict(t=851 + k, signal=round(float(p[k]), 4), bar_return=ro
 
 # facts: single figures used across the page
 import subprocess
-old = pd.read_csv(pd.io.common.StringIO(subprocess.check_output(['git', '-C', str(ROOT), 'show', 'HEAD:round_3_submission.csv'], text=True)))
+old = git_csv('b1a5941:round_3_submission.csv')  # first-draft Round 3 file
+up_r2 = git_csv('0394367:round 2 renaissancw.csv')  # final Round 2 upload
+up_r3 = git_csv('056f38f:round_3_submission.csv')  # final Round 3 upload (generate_round3_100.py)
+next_ret = c.pct_change().shift(-1).iloc[850:899].values
+truth = (next_ret > 0).astype(int)
+from sklearn.metrics import balanced_accuracy_score, matthews_corrcoef
 known = df.close.notna()
 rec = 0.5 * (df.order_flow * (df.high - df.low) + df.high + df.low)
 rec_err = float((rec[known] - df.close[known]).abs().max())
@@ -84,6 +93,9 @@ facts = [
     ('crash_drop', 'Peak-to-bar-900 drop', float(c.iloc[899] / c.max() - 1), 'pct'),
     ('submissions', 'Total uploads allowed (all rounds)', 10, 'int'),
     ('lookahead_bars', 'R3 bars re-built with future rows deleted', 50, 'int'),
+    ('r2_up_ba', 'Final Round 2 upload balanced accuracy (vs rebuilt closes)', float(balanced_accuracy_score(truth, up_r2.prediction.values[:49])), 'num'),
+    ('r2_up_mcc', 'Final Round 2 upload MCC (vs rebuilt closes)', float(matthews_corrcoef(truth, up_r2.prediction.values[:49])), 'num'),
+    ('r3_up_match', 'Final Round 3 upload: share of bars matching next-bar direction', float((np.sign(up_r3.signal.values[:49]) == np.sign(next_ret)).mean()), 'pct'),
 ]
 dump('facts', [dict(key=k, label=l, value=v, unit=u) for k, l, v, u in facts])
 

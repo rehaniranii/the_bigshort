@@ -10,8 +10,8 @@ Our code for a five-hour machine-learning trading sprint on one emerging-market 
 
 It also contains **REGIME-X**, the research terminal we used to test ideas on real stocks before spending our 10 uploads.
 
-> **Headline (Round 3, bars 851–900, after 0.1% trading cost):** buy-and-hold lost **49.0%** with a worst drop of **51.4%**. Our book finished **+3.7%**, never more than **4.4%** down, with a turnover of **1.2**.
-> *These figures come from our own replay of the scoring rules. They are not the official leaderboard score.*
+> **What we uploaded vs. what is causal.** Our **final Round 3 upload** (`generate_round3_100.py`) set each position from the **next** bar's rebuilt close. That is look-ahead, and it is why it matched the public score. Our **causal Round 3 engine** (`generate_round3_signals.py`) uses only past data. Over bars 851–900, after 0.1% trading cost, it lost **2.2%** with a worst drop of **6.6%** and a turnover of **1.2**, while buy-and-hold lost **46.5%** with a worst drop of **51.4%**.
+> *Causal-engine figures come from our own replay with rebuilt closes, scoring each position against the next bar's move as the target does. They are not the official leaderboard score.*
 
 ---
 
@@ -19,14 +19,15 @@ It also contains **REGIME-X**, the research terminal we used to test ideas on re
 
 ```
 .
-├── generate_round1_submission.py          # Round 1: features + 3-model blend → round_1_submission.csv
-├── generate_round2_round3_submissions.py  # Round 2: rebuilds hidden closes, writes Round 2 (and first-draft Round 3) files
-├── generate_round3_signals.py             # Round 3: causal regime-aware signal + no-look-ahead test
+├── generate_round1_submission.py          # Round 1 upload: features + 3-model blend
+├── generate_round2_round3_submissions.py  # Round 2 upload: causal LR + HistGB model with regime adjustment
+├── generate_round3_100.py                 # Round 3 final upload: next-bar closes (look-ahead)
+├── generate_round3_v2/_v4/_v5/_portfolio/_final.py  # intermediate Round 3 versions
+├── generate_round3_signals.py             # causal Round 3 engine + no-look-ahead test
 ├── extract_r2_data.py                     # one-off helper used to save the Round 2 dataset
 ├── adaptive_regression_breakout_map.pine  # ARBM indicator, Pine Script v6 (by GainzAlgo, MPL-2.0)
 ├── round1_dataset.csv                     # = KESTREL_EM_D02_round1.csv (850 rows)
 ├── round2_dataset.csv                     # = KESTREL_EM_D02_round2.csv = ..._round3.csv (900 rows)
-├── round_1_submission.csv / round_2_submission.csv
 ├── presentation/                          # final deck + scripts that rebuild it from the data
 │   ├── REGIME-X_Final_Presentation.pptx
 │   ├── validate_round1.py                 # walk-forward check of the Round 1 model
@@ -45,6 +46,8 @@ It also contains **REGIME-X**, the research terminal we used to test ideas on re
 | `KESTREL_EM_D02_round1.csv` | 850 | 1–800 | 801–850 | close, return_1d, sma_10, sma_30, momentum_5 |
 | `KESTREL_EM_D02_round2.csv` | 900 | 1–850 | 851–900 | close, return_1d |
 | `KESTREL_EM_D02_round3.csv` | 900 | 1–850 | 851–900 | close, return_1d (same file as Round 2) |
+
+The uploaded submission CSVs were removed from `main` in `9c491bc`. They are still in history: Round 1 at `b1a5941`, Round 2 at `0394367` (`round 2 renaissancw.csv`) and the final Round 3 at `056f38f`.
 
 The columns are open, high, low, close, volume, return_1d, sma_10, sma_30, momentum_5, volatility_20, rsi_14, volume_z_20, order_flow and target. The target is 1 if the next bar closes higher.
 
@@ -77,9 +80,19 @@ The edge is small but real. The most important features (permutation importance)
 
 ---
 
-## Round 2: data forensics
-`generate_round2_round3_submissions.py`
+## Round 2: causal crash model
+`generate_round2_round3_submissions.py` (final Round 2 upload)
 
+- **12 features available at bar t:** RSI-14, volatility_20, volume z-score, order_flow, momentum_5, SMA10–SMA30 spread, open vs SMA10, high–low spread, and open-to-open returns over 1–3 bars.
+- **Models:** L2 logistic regression (`C=0.10`) and HistGradientBoosting (depth 3, 50 iterations), trained on rows 50–850 and averaged 50/50.
+- **Regime adjustment:** `P(up) − 0.08·(volatility_20 / 0.04) + 0.08·order_flow`, clipped to [0.10, 0.90]. This leans bearish when volatility is high and follows that day's order flow.
+- **Output:** 25 UP / 25 DOWN. Measured against rebuilt closes on rows 851–899, the upload scores **0.593 balanced accuracy** and **+0.18 MCC**.
+
+> ⚠️ The script's docstring says balanced accuracy was "calibrated to ~59.3%". That number can only be measured with the crash-window answers, so the two hand-set adjustment constants may have been tuned on the test rows. Treat 59.3% as in-sample.
+>
+> The first version of this script (commit `b1a5941`) labelled each crash row from the next row's rebuilt close, which is look-ahead. It was replaced by the model above.
+
+### Data forensics: the hidden close
 On the crash rows the close is hidden, but `order_flow` is the **Close Location Value**: where the close sits inside the day's range.
 
 ```
@@ -90,14 +103,18 @@ close      = ½ · (order_flow · (high − low) + high + low)
 - The maximum error on the 850 rows where the close is known is 0.0005.
 - Rebuilt closes reproduce the provided `sma_10` on the crash rows to within 1e-4.
 
-> ⚠️ **Known issue:** the Round 2 file labels each crash row by the direction of the **next** row's rebuilt close. That is look-ahead. Once we saw it, we rebuilt Round 3 from scratch to use past data only (below).
-
 During the crash, daily volatility went from about **1.2% to 6.6%**, up days fell to **40%**, and lag-1 autocorrelation flipped from **+0.11 to −0.09**.
 
 ---
 
-## Round 3: causal, regime-aware, volatility-targeted
-`generate_round3_signals.py`
+## Round 3
+### Final upload: `generate_round3_100.py` (look-ahead)
+- Rebuilds the closes, then sets each signal from the sign of the **next** bar's rebuilt return. Size is 0.40–0.85, scaled by the size of that move. Bar 900 has no next bar and is assumed to fall.
+- The signals match the next bar's direction on **100%** of bars. That is why it reached 100/100 on the public score, and it is look-ahead.
+- Before it, `generate_round3_v2/_v4/_v5/_portfolio/_final.py` were intermediate versions iterated against the public leaderboard.
+
+### Causal alternative: `generate_round3_signals.py`
+Uses only data available before each bar.
 
 1. **`build_close()`:** rebuild closes with the identity above. A bar's close is only used from the next bar on.
 2. **Measure risk:** 20- and 5-bar volatility, a 120-bar median baseline volatility, 60-bar drawdown, and the 30-bar mean.
@@ -108,18 +125,22 @@ During the crash, daily volatility went from about **1.2% to 6.6%**, up days fel
 4. **Target position:**
    - *Calm:* `sign(EMA10 − EMA30) × min(0.6% / vol, 1)`
    - *Crisis:* short only while the close is below SMA30, sized `min(1.5% / vol, 0.5)`; otherwise flat
-5. **One-bar lag:** each position is computed at the close of t−1 and held during t.
+5. **One-bar lag:** each position is computed from data up to t−1.
 6. **`smooth()`:** move towards the target at speed 0.3 when adding risk and 0.8 when cutting or flipping. This keeps turnover low without slowing exits.
 7. **No-look-ahead test:** for each of the 50 test bars, `main()` deletes every later row, rebuilds the signal and asserts an exact match.
 
-Parameters are round, middle-of-the-range values chosen before looking at bars 851–900. They were not tuned on them.
+Parameters are round, middle-of-the-range values chosen before looking at bars 851–900.
 
-| Bars 851–900 | Our book | Buy & hold |
+Replay over bars 851–900, scoring each position against the next bar's move as the target does, after 0.1% cost:
+
+| Bars 851–900 | Causal engine | Buy & hold |
 |---|---|---|
-| Return | **+3.7%** | −49.0% |
-| Sharpe (annualised) | **1.04** | −2.73 |
-| Max drawdown | **−4.4%** | −51.4% |
+| Return | **−2.2%** | −46.5% |
+| Sharpe (annualised) | **−0.37** | −2.51 |
+| Max drawdown | **−6.6%** | −51.4% |
 | Turnover (Σ\|Δposition\|) | **1.2** | first draft: 48.3 |
+
+It doesn't make money in the crash, but it keeps nearly all of the capital that buy-and-hold loses, and it trades very little.
 
 ---
 
@@ -163,7 +184,7 @@ python generate_round3_signals.py round2_dataset.csv round_3_submission.csv
 python presentation/validate_round1.py round1_dataset.csv presentation/data/r1_validation.json
 ```
 
-> `generate_round1_submission.py`, `generate_round2_round3_submissions.py` and `extract_r2_data.py` still have **hard-coded absolute paths** (`/Users/ronakshah07/...`) from the machine they were run on during the event. Edit the paths at the top of each script before running them.
+> `generate_round1_submission.py`, `generate_round2_round3_submissions.py`, `generate_round3_100.py` (and the other `generate_round3_v*` scripts) and `extract_r2_data.py` still have **hard-coded absolute paths** (`/Users/ronakshah07/...`) from the machine they were run on during the event. Edit the paths at the top of each script before running them.
 >
 > On macOS, LightGBM needs OpenMP: `brew install libomp`.
 
@@ -192,10 +213,11 @@ cd presentation && NODE_PATH=<folder containing pptxgenjs> node build_deck.js RE
 ---
 
 ## Limitations
-- The Round 2 labels used the next row's close (look-ahead). Round 3 was rebuilt to remove this, and the no-look-ahead test covers every test bar.
-- Daily direction is a weak signal: blend MCC is about +0.09 in walk-forward validation.
-- The 15-bar crisis hold can lag a sharp V-shaped recovery.
-- All Round 3 performance numbers are our own replay with rebuilt closes, not the organisers' scorer.
+- **The final Round 3 upload used next-bar closes, which is look-ahead.** Its 100/100 public score does not reflect a tradable strategy. The causal alternative is `generate_round3_signals.py`.
+- **Round 2 may be tuned on the test window.** The Round 2 adjustment constants may have been set while checking crash-window accuracy, so its 0.593 balanced accuracy is in-sample.
+- **Daily direction is a weak signal:** Round 1 blend MCC is about +0.09 in walk-forward validation.
+- **The crisis hold can lag rebounds:** the causal engine's 15-bar hold can be slow after a sharp V-shaped recovery.
+- **Replay figures are our own:** all of them use rebuilt closes, not the organisers' scorer.
 
 ## Team
 **Team Renaissance**: built for the BigShort ML Trading Sprint.
