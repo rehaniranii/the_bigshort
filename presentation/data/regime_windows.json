@@ -1,0 +1,1 @@
+[{"window":"Calm (1-800)","bars":799,"mean_return":0.00057,"daily_vol":0.01231,"up_share":0.5232,"autocorr_1":0.1134},{"window":"Pre-crash (801-850)","bars":50,"mean_return":0.00244,"daily_vol":0.01338,"up_share":0.56,"autocorr_1":0.0359},{"window":"Flash crash (851-900)","bars":50,"mean_return":-0.01123,"daily_vol":0.06603,"up_share":0.4,"autocorr_1":-0.0872}]

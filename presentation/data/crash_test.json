@@ -1,0 +1,1 @@
+[{"ticker":"SPY","scenario":"COVID-19 Crash","start":"2020-02-15","end":"2020-04-01","buyhold_return":-0.23,"strategy_return":0.0,"trades":0},{"ticker":"AAPL","scenario":"COVID-19 Crash","start":"2020-02-15","end":"2020-04-01","buyhold_return":-0.2029,"strategy_return":0.0,"trades":0}]

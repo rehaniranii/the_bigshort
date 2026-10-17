@@ -1,0 +1,41 @@
+[
+ {
+  "round": 1,
+  "file": "KESTREL_EM_D02_round1.csv",
+  "rows": 850,
+  "cols": 17,
+  "train": "1\u2013800",
+  "test": "801\u2013850",
+  "hidden": [
+   "close",
+   "return_1d",
+   "sma_10",
+   "sma_30",
+   "momentum_5"
+  ]
+ },
+ {
+  "round": 2,
+  "file": "KESTREL_EM_D02_round2.csv",
+  "rows": 900,
+  "cols": 17,
+  "train": "1\u2013850",
+  "test": "851\u2013900",
+  "hidden": [
+   "close",
+   "return_1d"
+  ]
+ },
+ {
+  "round": 3,
+  "file": "KESTREL_EM_D02_round3.csv",
+  "rows": 900,
+  "cols": 17,
+  "train": "1\u2013850",
+  "test": "851\u2013900",
+  "hidden": [
+   "close",
+   "return_1d"
+  ]
+ }
+]
