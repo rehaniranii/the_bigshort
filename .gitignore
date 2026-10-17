@@ -31,3 +31,9 @@ Thumbs.db
 scratch/
 .env.local
 .env.*.local
+
+# Submission CSVs (keep dataset files)
+round*renaissance*.csv
+round_*_submission.csv
+round 2 renaissancw.csv
+round_3_submission.csv
